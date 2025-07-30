@@ -5,6 +5,8 @@ import CharacterCard from "./components/CharacterCard/CharacterCard";
 import characters from "../public/Characters/characters"; // Import the characters
 import styles from "./page.module.css";
 
+//Tester
+
 const NarutoArenaEngine = () => {
   // Game state
   const [gameState, setGameState] = useState("battle");

@@ -23,7 +23,7 @@ const characters = {
         id: "rasengan",
         name: "Rasengan",
         damage: 30,
-        chakraReq: ["ninjutsu", "random"],
+        chakraReq: ["ninjutssu", "random"],
         cooldown: 1,
         type: "Chakra",
         classes: ["chakra", "melee", "instant"],

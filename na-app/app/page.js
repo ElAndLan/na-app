@@ -2,135 +2,39 @@
 import React, { useState, useEffect } from "react";
 import { Sword, Shield, Zap, Heart, Clock, Users } from "lucide-react";
 import CharacterCard from "./components/CharacterCard/CharacterCard";
+import characters from "../public/Characters/characters"; // Import the characters
 import styles from "./page.module.css";
 
 const NarutoArenaEngine = () => {
   // Game state
-  const [gameState, setGameState] = useState("battle"); // setup, battle, victory
+  const [gameState, setGameState] = useState("battle");
   const [currentTurn, setCurrentTurn] = useState(1);
-  const [activePlayer, setActivePlayer] = useState(null); // Will be set randomly
-  const [selectedCharacter, setSelectedCharacter] = useState(null); // { player: num, index: num }
-  const [selectedSkill, setSelectedSkill] = useState(null); // The skill object
-  const [battleLog, setBattleLog] = useState([]);
+  const [activePlayer, setActivePlayer] = useState(null);
+  const [selectedCharacter, setSelectedCharacter] = useState(null);
+  const [selectedSkill, setSelectedSkill] = useState(null);
   const [gameStarted, setGameStarted] = useState(false);
-  const [turnActions, setTurnActions] = useState([]); // New state to store actions for the turn
+  const [turnActions, setTurnActions] = useState([]);
+
+  // Turn timer state
+  const [turnTimeLeft, setTurnTimeLeft] = useState(30);
+  const [timerActive, setTimerActive] = useState(false);
 
   // Chakra pools for each player
   const [player1Chakra, setPlayer1Chakra] = useState({
-    taijutsu: 0, // Green
-    ninjutsu: 0, // Blue
-    bloodline: 0, // Red
-    genjutsu: 0, // White
-    random: 0, // Black
+    taijutsu: 0,
+    ninjutsu: 0,
+    bloodline: 0,
+    genjutsu: 0,
+    random: 0,
   });
 
   const [player2Chakra, setPlayer2Chakra] = useState({
-    taijutsu: 0, // Green
-    ninjutsu: 0, // Blue
-    bloodline: 0, // Red
-    genjutsu: 0, // White
-    random: 0, // Black
+    taijutsu: 0,
+    ninjutsu: 0,
+    bloodline: 0,
+    genjutsu: 0,
+    random: 0,
   });
-
-  // Character database
-  const characters = [
-    {
-      id: "naruto",
-      name: "Naruto Uzumaki",
-      health: 100,
-      skills: [
-        {
-          id: "rasengan",
-          name: "Rasengan",
-          damage: 30,
-          chakraReq: ["ninjutsu"],
-          cooldown: 3,
-          type: "Physical",
-        },
-        {
-          id: "shadow_clones",
-          name: "Shadow Clones",
-          damage: 15,
-          chakraReq: ["ninjutsu"],
-          cooldown: 3,
-          type: "Mental",
-        },
-        {
-          id: "nine_tails",
-          name: "Nine Tails Chakra",
-          damage: 45,
-          chakraReq: ["bloodline", "ninjutsu"],
-          cooldown: 5,
-          type: "Chakra",
-        },
-      ],
-    },
-    {
-      id: "sasuke",
-      name: "Sasuke Uchiha",
-      health: 95,
-      skills: [
-        {
-          id: "chidori",
-          name: "Chidori",
-          damage: 35,
-          chakraReq: ["ninjutsu"],
-          cooldown: 3,
-          type: "Physical",
-        },
-        {
-          id: "fire_ball",
-          name: "Fire Ball Jutsu",
-          damage: 20,
-          chakraReq: ["ninjutsu"],
-          cooldown: 2,
-          type: "Chakra",
-        },
-        {
-          id: "sharingan",
-          name: "Sharingan",
-          damage: 0,
-          chakraReq: ["bloodline"],
-          cooldown: 4,
-          type: "Mental",
-          effect: "counter",
-        },
-      ],
-    },
-    {
-      id: "sakura",
-      name: "Sakura Haruno",
-      health: 85,
-      skills: [
-        {
-          id: "chakra_punch",
-          name: "Chakra Enhanced Punch",
-          damage: 25,
-          chakraReq: ["taijutsu"],
-          cooldown: 2,
-          type: "Physical",
-        },
-        {
-          id: "heal",
-          name: "Medical Jutsu",
-          damage: -30,
-          chakraReq: ["ninjutsu"],
-          cooldown: 3,
-          type: "Mental",
-          effect: "heal",
-        },
-        {
-          id: "poison",
-          name: "Poison Mist",
-          damage: 15,
-          chakraReq: ["genjutsu"],
-          cooldown: 4,
-          type: "Chakra",
-          effect: "poison",
-        },
-      ],
-    },
-  ];
 
   // Player teams
   const [player1Team, setPlayer1Team] = useState([]);
@@ -142,69 +46,97 @@ const NarutoArenaEngine = () => {
     player2: {},
   });
 
+  // Convert characters object to array for easier use
+  const charactersArray = Object.values(characters);
+
+  // Timer effect
+  useEffect(() => {
+    let interval = null;
+
+    if (timerActive && turnTimeLeft > 0 && gameState === "battle") {
+      interval = setInterval(() => {
+        setTurnTimeLeft((prev) => {
+          if (prev <= 1) {
+            // Timer reached zero, end turn automatically
+            setTimerActive(false);
+            setTimeout(() => endTurn(), 100);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else if (turnTimeLeft === 0) {
+      setTimerActive(false);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [timerActive, turnTimeLeft, gameState]);
+
+  // Generate chakra based on alive characters
+  const generateChakraForPlayer = React.useCallback(
+    (playerNum, chakraAmount) => {
+      const chakraTypes = [
+        "taijutsu",
+        "ninjutsu",
+        "bloodline",
+        "genjutsu",
+        "random",
+      ];
+
+      for (let i = 0; i < chakraAmount; i++) {
+        const newChakra =
+          chakraTypes[Math.floor(Math.random() * chakraTypes.length)];
+
+        if (playerNum === 1) {
+          setPlayer1Chakra((prev) => ({
+            ...prev,
+            [newChakra]: prev[newChakra] + 1,
+          }));
+        } else {
+          setPlayer2Chakra((prev) => ({
+            ...prev,
+            [newChakra]: prev[newChakra] + 1,
+          }));
+        }
+      }
+    },
+    []
+  );
+
   // Initialize teams with characters and set random starting player
   useEffect(() => {
     if (player1Team.length === 0 && !gameStarted) {
+      // Initialize player teams with characters
       setPlayer1Team([
-        { ...characters[0], currentHealth: characters[0].health },
-        { ...characters[1], currentHealth: characters[1].health },
-        { ...characters[2], currentHealth: characters[2].health },
+        { ...charactersArray[0], currentHealth: charactersArray[0].health },
+        { ...charactersArray[1], currentHealth: charactersArray[1].health },
+        { ...charactersArray[2], currentHealth: charactersArray[2].health },
       ]);
       setPlayer2Team([
-        { ...characters[0], currentHealth: characters[0].health },
-        { ...characters[1], currentHealth: characters[1].health },
-        { ...characters[2], currentHealth: characters[2].health },
+        { ...charactersArray[0], currentHealth: charactersArray[0].health },
+        { ...charactersArray[1], currentHealth: charactersArray[1].health },
+        { ...charactersArray[2], currentHealth: charactersArray[2].health },
       ]);
-
       const randomStartingPlayer = Math.random() < 0.5 ? 1 : 2;
       setActivePlayer(randomStartingPlayer);
       generateChakraForPlayer(randomStartingPlayer, 1);
-      addToBattleLog(`Player ${randomStartingPlayer} goes first!`);
       setGameStarted(true);
+      // Start timer for first turn
+      setTurnTimeLeft(30);
+      setTimerActive(true);
     }
-  }, [gameStarted, player1Team.length]);
-
-  const addToBattleLog = (message) => {
-    setBattleLog((prev) => [...prev, `Turn ${currentTurn}: ${message}`]);
-  };
+  }, [
+    gameStarted,
+    player1Team.length,
+    charactersArray,
+    generateChakraForPlayer,
+  ]);
 
   // Count alive characters for a player
   const countAliveCharacters = (team) => {
     return team.filter((char) => char.currentHealth > 0).length;
-  };
-
-  // Generate chakra based on alive characters
-  const generateChakraForPlayer = (playerNum, chakraAmount) => {
-    const chakraTypes = [
-      "taijutsu",
-      "ninjutsu",
-      "bloodline",
-      "genjutsu",
-      "random",
-    ];
-
-    for (let i = 0; i < chakraAmount; i++) {
-      const newChakra =
-        chakraTypes[Math.floor(Math.random() * chakraTypes.length)];
-
-      if (playerNum === 1) {
-        setPlayer1Chakra((prev) => ({
-          ...prev,
-          [newChakra]: prev[newChakra] + 1,
-        }));
-      } else {
-        setPlayer2Chakra((prev) => ({
-          ...prev,
-          [newChakra]: prev[newChakra] + 1,
-        }));
-      }
-
-      addToBattleLog(
-        `Player ${playerNum} gained 1 ${
-          newChakra.charAt(0).toUpperCase() + newChakra.slice(1)
-        } chakra`
-      );
-    }
   };
 
   // Check if player has required chakra for skill
@@ -285,9 +217,6 @@ const NarutoArenaEngine = () => {
 
     // Check chakra requirements
     if (!canUseSkill(selectedSkill, currentPlayerChakra)) {
-      addToBattleLog(
-        `${actingChar.name} doesn't have the required chakra to use ${selectedSkill.name}!`
-      );
       setSelectedSkill(null); // Clear selected skill if cannot use
       setSelectedCharacter(null); // Clear selected character
       return;
@@ -297,9 +226,6 @@ const NarutoArenaEngine = () => {
     const playerCooldowns = cooldowns[`player${actingPlayerNum}`];
     const skillKey = `${actingChar.id}_${selectedSkill.id}`;
     if (playerCooldowns[skillKey] && playerCooldowns[skillKey] > 0) {
-      addToBattleLog(
-        `${selectedSkill.name} is on cooldown for ${playerCooldowns[skillKey]} more turns for ${actingChar.name}!`
-      );
       setSelectedSkill(null); // Clear selected skill if on cooldown
       setSelectedCharacter(null); // Clear selected character
       return;
@@ -328,13 +254,6 @@ const NarutoArenaEngine = () => {
         [skillKey]: selectedSkill.cooldown,
       },
     }));
-
-    const targetTeam = targetPlayer === 1 ? player1Team : player2Team;
-    const targetChar = targetTeam[targetCharIndex];
-
-    addToBattleLog(
-      `${actingChar.name} prepared to use ${selectedSkill.name} on ${targetChar.name}!`
-    );
 
     // Clear selected skill and character after action is queued
     setSelectedSkill(null);
@@ -367,19 +286,9 @@ const NarutoArenaEngine = () => {
 
       // Ensure characters are still valid and alive before applying effect
       if (!actingChar || actingChar.currentHealth <= 0) {
-        addToBattleLog(
-          `${
-            actingChar?.name || "A character"
-          } was defeated before they could act!`
-        );
         return;
       }
       if (!targetChar || targetChar.currentHealth <= 0) {
-        addToBattleLog(
-          `${
-            targetChar?.name || "A character"
-          } was defeated before they could be targeted!`
-        );
         return;
       }
 
@@ -390,15 +299,9 @@ const NarutoArenaEngine = () => {
           targetChar.currentHealth + healAmount
         );
         targetChar.currentHealth = newHealth;
-        addToBattleLog(
-          `${actingChar.name} healed ${targetChar.name} for ${healAmount} HP!`
-        );
       } else {
         const newHealth = Math.max(0, targetChar.currentHealth - skill.damage);
         targetChar.currentHealth = newHealth;
-        addToBattleLog(
-          `${actingChar.name} used ${skill.name} on ${targetChar.name} for ${skill.damage} damage!`
-        );
       }
     });
 
@@ -408,6 +311,9 @@ const NarutoArenaEngine = () => {
   };
 
   const endTurn = () => {
+    // Stop the timer
+    setTimerActive(false);
+
     // Apply all queued actions from the current turn
     applyTurnEffects();
 
@@ -419,12 +325,10 @@ const NarutoArenaEngine = () => {
 
       if (player1Alive === 0) {
         setGameState("victory");
-        addToBattleLog("Player 2 wins!");
         return;
       }
       if (player2Alive === 0) {
         setGameState("victory");
-        addToBattleLog("Player 1 wins!");
         return;
       }
 
@@ -459,17 +363,23 @@ const NarutoArenaEngine = () => {
 
       setSelectedCharacter(null);
       setSelectedSkill(null);
+
+      // Reset and start timer for next player
+      setTurnTimeLeft(30);
+      setTimerActive(true);
     }, 100); // Small delay to ensure state updates
   };
 
   const resetGame = () => {
     setCurrentTurn(1);
-    setBattleLog([]);
     setSelectedCharacter(null);
     setSelectedSkill(null);
     setCooldowns({ player1: {}, player2: {} });
     setGameStarted(false);
     setTurnActions([]); // Clear any pending actions
+    // Reset timer
+    setTurnTimeLeft(30);
+    setTimerActive(false);
 
     // Reset chakra pools
     setPlayer1Chakra({
@@ -487,19 +397,17 @@ const NarutoArenaEngine = () => {
       random: 0,
     });
 
-    // Reset character health
-    setPlayer1Team((prev) =>
-      prev.map((char) => ({
-        ...char,
-        currentHealth: char.health,
-      }))
-    );
-    setPlayer2Team((prev) =>
-      prev.map((char) => ({
-        ...char,
-        currentHealth: char.health,
-      }))
-    );
+    // Reset character health using imported characters
+    setPlayer1Team([
+      { ...charactersArray[0], currentHealth: charactersArray[0].health },
+      { ...charactersArray[1], currentHealth: charactersArray[1].health },
+      { ...charactersArray[2], currentHealth: charactersArray[2].health },
+    ]);
+    setPlayer2Team([
+      { ...charactersArray[0], currentHealth: charactersArray[0].health },
+      { ...charactersArray[1], currentHealth: charactersArray[1].health },
+      { ...charactersArray[2], currentHealth: charactersArray[2].health },
+    ]);
 
     // Set new random starting player
     const randomStartingPlayer = Math.random() < 0.5 ? 1 : 2;
@@ -508,9 +416,11 @@ const NarutoArenaEngine = () => {
     // Generate initial chakra for the new starting player
     setTimeout(() => {
       generateChakraForPlayer(randomStartingPlayer, 1);
-      addToBattleLog(`Player ${randomStartingPlayer} goes first!`);
       setGameStarted(true);
       setGameState("battle"); // Set game state back to battle
+      // Start timer for new game
+      setTurnTimeLeft(30);
+      setTimerActive(true);
     }, 100);
   };
 
@@ -538,41 +448,6 @@ const NarutoArenaEngine = () => {
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Naruto Arena Engine</h1>
-
-      {/* Game Info */}
-      <div className={styles.gameInfo}>
-        <div className={styles.gameInfoHeader}>
-          <div className={styles.gameInfoItem}>
-            <Clock className={styles.icon} />
-            <span className={styles.gameInfoText}>Turn: {currentTurn}</span>
-          </div>
-          <div className={styles.gameInfoItem}>
-            <Users className={styles.icon} />
-            <span className={styles.gameInfoText}>
-              Active Player: {activePlayer || "Starting..."}
-            </span>
-          </div>
-        </div>
-
-        {/* Battle Log */}
-        <div>
-          <h3 className={styles.battleLogTitle}>Battle Log:</h3>
-          {battleLog.length === 0 ? (
-            <p className={styles.battleLogEmpty}>
-              Battle will begin once you select an action...
-            </p>
-          ) : (
-            <div className={styles.battleLog}>
-              {battleLog.slice(-5).map((log, index) => (
-                <p key={index} className={styles.battleLogEntry}>
-                  {log}
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Pending Actions */}
       {turnActions.length > 0 && (
         <div className={styles.pendingActions}>
@@ -595,23 +470,28 @@ const NarutoArenaEngine = () => {
           })}
         </div>
       )}
-
       {/* Chakra Pool - Active Player Only */}
       {activePlayer && (
         <div className={styles.activeChakraPool}>
-          <h3
-            className={`${styles.chakraPoolTitle} ${
-              activePlayer === 1
-                ? styles.player1ChakraTitle
-                : styles.player2ChakraTitle
-            }`}
-          >
-            Player {activePlayer} Chakra (
-            {countAliveCharacters(
-              activePlayer === 1 ? player1Team : player2Team
-            )}{" "}
-            alive)
-          </h3>
+          {/* Turn Timer */}
+          {gameState === "battle" && (
+            <div className={styles.timerContainer}>
+              <div className={styles.timerBarContainer}>
+                <div
+                  className={styles.timerBar}
+                  style={{
+                    width: `${(turnTimeLeft / 30) * 100}%`,
+                    backgroundColor:
+                      turnTimeLeft <= 10
+                        ? "#ef4444"
+                        : turnTimeLeft <= 20
+                        ? "#f59e0b"
+                        : "#10b981",
+                  }}
+                />
+              </div>
+            </div>
+          )}
           <div className={styles.chakraDisplay}>
             {Object.entries(
               activePlayer === 1 ? player1Chakra : player2Chakra
@@ -630,17 +510,15 @@ const NarutoArenaEngine = () => {
           </div>
         </div>
       )}
-
       {/* Game Over / Victory Screen */}
       {gameState === "victory" && (
         <div className={styles.victoryOverlay}>
           <div className={styles.victoryModal}>
             <h2 className={styles.victoryTitle}>Game Over!</h2>
             <p className={styles.victoryMessage}>
-              {battleLog[battleLog.length - 1]?.replace(
-                `Turn ${currentTurn}: `,
-                ""
-              ) || "Victory!"}
+              {countAliveCharacters(player1Team) === 0
+                ? "Player 2 wins!"
+                : "Player 1 wins!"}
             </p>
             <button onClick={resetGame} className={styles.playAgainButton}>
               Play Again
@@ -648,7 +526,6 @@ const NarutoArenaEngine = () => {
           </div>
         </div>
       )}
-
       {/* Target Selection Info */}
       {selectedSkill && selectedCharacter && (
         <div className={styles.targetSelectionInfo}>
@@ -671,7 +548,6 @@ const NarutoArenaEngine = () => {
           </p>
         </div>
       )}
-
       <div className={styles.teamsGrid}>
         {/* Player 1 Team */}
         <div className={styles.teamPanel}>
@@ -729,7 +605,6 @@ const NarutoArenaEngine = () => {
           </div>
         </div>
       </div>
-
       {/* Controls */}
       <div className={styles.controls}>
         <div className={styles.controlsContent}>

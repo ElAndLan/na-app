@@ -64,6 +64,29 @@
   font-size: 14px;
 }
 
+/* Turn Timer Styles */
+.timerContainer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.timerBarContainer {
+  width: 50%;
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  margin: 0 auto;
+}
+
+.timerBar {
+  height: 100%;
+  transition: width 1s linear, background-color 0.3s ease;
+  border-radius: 3px;
+}
+
 .pendingActions {
   background-color: #fef3c7;
   border: 2px solid #f59e0b;
@@ -99,22 +122,23 @@
 .chakraDisplay {
   display: flex;
   justify-content: center;
-  gap: 20px;
+  gap: 15px;
   flex-wrap: wrap;
+  margin-top: 12px;
 }
 
 .chakraTypeDisplay {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 .chakraSquare {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  border: 2px solid #000;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  border: 1px solid #000;
 }
 
 .chakraTaijutsu {
@@ -131,7 +155,7 @@
 
 .chakraGenjutsu {
   background-color: #ffffff; /* White */
-  border: 2px solid #6b7280; /* Gray border for visibility */
+  border: 1px solid #6b7280; /* Gray border for visibility */
 }
 
 .chakraRandom {
@@ -140,7 +164,7 @@
 
 .chakraAmount {
   font-weight: bold;
-  font-size: 18px;
+  font-size: 14px;
   color: #1f2937;
 }
 
